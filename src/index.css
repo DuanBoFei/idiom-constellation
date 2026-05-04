@@ -1,8 +1,4 @@
-@font-face {
-  font-family: 'LXGW WenKai';
-  src: url('https://cdn.jsdelivr.net/npm/lxgw-wenkai-webfont@1.7.0/style.css') format('woff2');
-  font-display: swap;
-}
+@import url('https://cdn.jsdelivr.net/npm/lxgw-wenkai-webfont@1.7.0/style.css');
 
 :root {
   --color-night-sky: #0a0e2a;
