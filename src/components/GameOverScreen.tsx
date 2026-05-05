@@ -17,7 +17,7 @@ export default function GameOverScreen({ onPlayAgain, onLeaderboard }: GameOverS
     audioEngine.playFanfare()
   }, [])
 
-  const score = calculateScore(state.correctCount, state.timeRemaining)
+  const score = calculateScore(state.correctCount, state.timeRemaining, state.questions.length)
   const avgTime =
     state.timesPerQuestion.length > 0
       ? Math.round(state.timesPerQuestion.reduce((a, b) => a + b, 0) / state.timesPerQuestion.length)
@@ -55,7 +55,7 @@ export default function GameOverScreen({ onPlayAgain, onLeaderboard }: GameOverS
         <div style={{ display: 'flex', justifyContent: 'space-around', width: '100%' }}>
           <div style={{ textAlign: 'center' }}>
             <p style={{ fontSize: 12, color: 'var(--color-text-secondary)' }}>答对</p>
-            <p style={{ fontSize: 24, color: 'var(--color-star-bright)' }}>{state.correctCount}/6</p>
+            <p style={{ fontSize: 24, color: 'var(--color-star-bright)' }}>{state.correctCount}/{state.questions.length}</p>
           </div>
           <div style={{ textAlign: 'center' }}>
             <p style={{ fontSize: 12, color: 'var(--color-text-secondary)' }}>平均用时</p>
