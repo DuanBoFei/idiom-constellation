@@ -122,7 +122,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         currentQuestionIndex: nextIdx,
         selectedStars: [],
         selectedStarIds: [],
-        timeRemaining: state.timeRemaining + getQuestionTime(nextQ),
+        timeRemaining: getQuestionTime(nextQ),
         lastResult: null,
         currentRound: 0,
         completedRounds: [],
