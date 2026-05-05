@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react'
 import { useGame } from '../hooks/useGameReducer'
-import { calculateScore } from '../utils/scoring'
 import { saveScore } from '../utils/leaderboard'
 import { audioEngine } from '../audio/AudioEngine'
 
@@ -17,7 +16,7 @@ export default function GameOverScreen({ onPlayAgain, onLeaderboard }: GameOverS
     audioEngine.playFanfare()
   }, [])
 
-  const score = calculateScore(state.correctCount, state.timeRemaining, state.questions.length)
+  const score = state.score
   const avgTime =
     state.timesPerQuestion.length > 0
       ? Math.round(state.timesPerQuestion.reduce((a, b) => a + b, 0) / state.timesPerQuestion.length)

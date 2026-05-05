@@ -849,4 +849,46 @@ export const questions: Question[] = [
     stories: ['出自宋·罗大经《鹤林玉露》', '出自五代·王定保《唐摭言》'],
     difficulty: 3,
   },
+
+  // ---- Multi-idiom questions (find 3 idioms in one star field) ----
+  {
+    id: 'qm01', type: 'multi',
+    idioms: ['一马当先', '一箭双雕', '一心一意'],
+    allChars: ['一', '马', '当', '先', '箭', '双', '雕', '心', '意'],
+    distractors: ['匹', '射', '同', '志', '二'],
+    hints: ['走在前列', '一举两得', '专心致志'],
+    difficulty: 3,
+  },
+  {
+    id: 'qm02', type: 'multi',
+    idioms: ['狐假虎威', '鹤立鸡群', '对牛弹琴'],
+    allChars: ['狐', '假', '虎', '威', '鹤', '立', '鸡', '群', '对', '牛', '弹', '琴'],
+    distractors: ['狼', '鹅', '马', '凤'],
+    hints: ['仗势欺人', '才能出众', '说话不看对象'],
+    difficulty: 3,
+  },
+  {
+    id: 'qm03', type: 'multi',
+    idioms: ['三心二意', '七上八下', '九牛一毛'],
+    allChars: ['三', '心', '二', '意', '七', '上', '八', '下', '九', '牛', '一', '毛'],
+    distractors: ['两', '杂', '跳', '里', '十'],
+    hints: ['犹豫不决', '心神不定', '微不足道'],
+    difficulty: 3,
+  },
+  {
+    id: 'qm04', type: 'multi',
+    idioms: ['愚公移山', '叶公好龙', '郑人买履'],
+    allChars: ['愚', '公', '移', '山', '叶', '好', '龙', '郑', '人', '买', '履'],
+    distractors: ['智', '叟', '爱', '凤', '鞋', '尺'],
+    hints: ['坚持不懈', '表里不一', '刻板教条'],
+    difficulty: 3,
+  },
+  {
+    id: 'qm05', type: 'multi',
+    idioms: ['画蛇添足', '画龙点睛', '画虎类犬'],
+    allChars: ['画', '蛇', '添', '足', '龙', '点', '睛', '虎', '类', '犬'],
+    distractors: ['凤', '翼', '描', '狼', '似', '猫'],
+    hints: ['多此一举', '关键一笔', '不切实际'],
+    difficulty: 3,
+  },
 ]

@@ -21,13 +21,12 @@ function App() {
     const config = LEVELS.find(l => l.id === levelId)
     if (!config) return
 
-    // Filter questions by difficulty matching level
     const pool = questions.filter(q => {
       if (levelId === 1) return q.difficulty === 1 && !('type' in q)
       if (levelId === 2) return (q.difficulty === 1 || q.difficulty === 2) && !('type' in q)
-      if (levelId === 3) return (q.difficulty === 2 || q.difficulty === 3) && !('type' in q)
-      if (levelId === 4) return 'type' in q && q.type === 'reverse'
-      if (levelId === 5) return 'type' in q && q.type === 'shared-char'
+      if (levelId === 3) return 'type' in q && q.type === 'reverse'
+      if (levelId === 4) return 'type' in q && q.type === 'shared-char'
+      if (levelId === 5) return 'type' in q && q.type === 'multi'
       return false
     })
     const selected = shuffle(pool).slice(0, config.questionsPerRound)
@@ -50,11 +49,12 @@ function App() {
     if (currentLevelId > 0 && currentLevelId <= 5 && !isEndless) {
       const progress = loadProgress()
       const stars = calculateStarRating(state.correctCount, state.questions.length)
+      const newLevelScores = { ...progress.levelScores, [currentLevelId]: state.score }
       const updatedProgress = {
         ...progress,
         levelStars: { ...progress.levelStars, [currentLevelId]: Math.max(progress.levelStars[currentLevelId] || 0, stars) },
-        levelScores: { ...progress.levelScores, [currentLevelId]: Math.max(progress.levelScores[currentLevelId] || 0, state.score) },
-        totalScore: progress.totalScore + state.score,
+        levelScores: newLevelScores,
+        totalScore: Object.values(newLevelScores).reduce((a, b) => a + b, 0),
       }
       const unlocked = unlockNextLevel(updatedProgress, currentLevelId)
       saveProgress(unlocked)

@@ -2,7 +2,7 @@ import { createContext, useContext } from 'react'
 import { shuffle } from '../utils/shuffle'
 import { questions as questionBank } from '../data/questions'
 import { LEVELS, STAR_GLOW_THRESHOLD, ERROR_PENALTY_THRESHOLD, ERROR_PENALTY_SECONDS } from '../constants/levels'
-import type { GameState, GameAction, Question } from '../types'
+import type { GameState, GameAction, Question, MultiIdiomQuestion } from '../types'
 
 const TIME_PER_SINGLE = 20
 const TIME_PER_DOUBLE = 25
@@ -36,11 +36,19 @@ export function createInitialState(): GameState {
     isEndlessMode: false,
     currentRound: 0,
     completedRounds: [],
+    foundIdioms: [],
   }
 }
 
 function getQuestionTime(question: Question): number {
+  if ('type' in question && question.type === 'multi') return 60
   return question.difficulty === 3 ? TIME_PER_DOUBLE : TIME_PER_SINGLE
+}
+
+function getScoreMultiplier(levelId: number): number {
+  if (levelId <= 0) return 1
+  const config = LEVELS.find(l => l.id === levelId)
+  return config?.scoreMultiplier ?? 1
 }
 
 export function gameReducer(state: GameState, action: GameAction): GameState {
@@ -57,7 +65,10 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
     }
     case 'SELECT_STAR': {
       if (state.phase !== 'PLAYING' && state.phase !== 'ROUND2_PLAYING') return state
-      if (state.selectedStarIds.includes(action.starId)) return state
+      // In multi mode, allow re-selecting the same star for repeated chars (e.g. 一心一意)
+      const q = state.questions[state.currentQuestionIndex]
+      const isMulti = q && 'type' in q && q.type === 'multi'
+      if (!isMulti && state.selectedStarIds.includes(action.starId)) return state
       if (state.selectedStars.length >= 4) return state
       const newSelected = [...state.selectedStars, action.character]
       const newSelectedIds = [...state.selectedStarIds, action.starId]
@@ -74,11 +85,14 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
     case 'VALIDATE_SUCCESS': {
       const question = state.questions[state.currentQuestionIndex]
       const timeSpent = getQuestionTime(question) - state.timeRemaining
+      const multiplier = getScoreMultiplier(state.currentLevelId)
+      const questionScore = Math.round(100 * multiplier)
       return {
         ...state,
         phase: 'RESULT',
         lastResult: 'correct',
         correctCount: state.correctCount + 1,
+        score: state.score + questionScore,
         timeRemaining: state.timeRemaining + BONUS_TIME,
         totalTimeUsed: state.totalTimeUsed + timeSpent,
         timesPerQuestion: [...state.timesPerQuestion, timeSpent],
@@ -126,6 +140,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         lastResult: null,
         currentRound: 0,
         completedRounds: [],
+        foundIdioms: [],
       }
     }
     case 'TICK': {
@@ -184,11 +199,14 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       return { ...state, phase: 'MEANING_SELECT', selectedStars: [], selectedStarIds: [] }
     case 'VALIDATE_MEANING':
       if (action.correct) {
+        const multiplier = getScoreMultiplier(state.currentLevelId)
+        const questionScore = Math.round(100 * multiplier)
         return {
           ...state,
           phase: 'RESULT',
           lastResult: 'correct',
           correctCount: state.correctCount + 1,
+          score: state.score + questionScore,
           timeRemaining: state.timeRemaining,
         }
       }
@@ -208,6 +226,40 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         phase: 'ROUND2_PLAYING',
       }
     }
+    case 'FOUND_IDIOM': {
+      const newFound = [...state.foundIdioms, action.chars]
+      const q = state.questions[state.currentQuestionIndex]
+      const multiQ = q as unknown as MultiIdiomQuestion
+      const allFound = newFound.length >= multiQ.idioms.length
+      if (allFound) {
+        const multiplier = getScoreMultiplier(state.currentLevelId)
+        const questionScore = Math.round(100 * multiplier)
+        return {
+          ...state,
+          foundIdioms: newFound,
+          phase: 'RESULT',
+          lastResult: 'correct',
+          correctCount: state.correctCount + 1,
+          score: state.score + questionScore,
+          selectedStars: [],
+          selectedStarIds: [],
+        }
+      }
+      return {
+        ...state,
+        foundIdioms: newFound,
+        selectedStars: [],
+        selectedStarIds: [],
+        phase: 'PLAYING',
+      }
+    }
+    case 'CLEAR_SELECTION':
+      return {
+        ...state,
+        phase: 'PLAYING',
+        selectedStars: [],
+        selectedStarIds: [],
+      }
     default:
       return state
   }

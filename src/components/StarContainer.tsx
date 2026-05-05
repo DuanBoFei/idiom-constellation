@@ -1,5 +1,5 @@
 import { useRef, useState, useEffect, useMemo } from 'react'
-import type { Question, GamePhase, SharedCharQuestion } from '../types'
+import type { Question, GamePhase, SharedCharQuestion, MultiIdiomQuestion } from '../types'
 import { generateStarLayout } from '../utils/starLayout'
 import { shuffle } from '../utils/shuffle'
 import { createSeededRandom, hashString } from '../utils/seededRandom'
@@ -18,6 +18,7 @@ interface StarContainerProps {
   sharedChars?: string[]
   isSharedCharMode?: boolean
   starGlowMode?: boolean
+  foundIdioms?: string[][]
 }
 
 interface StarData {
@@ -39,6 +40,7 @@ export default function StarContainer({
   sharedChars = [],
   isSharedCharMode = false,
   starGlowMode = false,
+  foundIdioms = [],
 }: StarContainerProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const [size, setSize] = useState({ width: 0, height: 0 })
@@ -53,7 +55,6 @@ export default function StarContainer({
     const obs = new ResizeObserver((entries) => {
       for (const entry of entries) {
         const { width, height } = entry.contentRect
-        // Only update if dimensions actually changed meaningfully
         if (Math.abs(width - sizeRef.current.width) > 1 || Math.abs(height - sizeRef.current.height) > 1) {
           sizeRef.current = { width, height }
           setSize({ width, height })
@@ -64,12 +65,35 @@ export default function StarContainer({
     return () => obs.disconnect()
   }, [])
 
+  // Compute set of chars to dim — only those that are NOT needed by any unfound idiom
+  const usedCharSet = useMemo(() => {
+    if (foundIdioms.length === 0) return new Set<string>()
+    if ('type' in question && question.type === 'multi') {
+      const multiQ = question as MultiIdiomQuestion
+      // Build sorted set of already-found idiom strings (order-independent)
+      const foundSortedSet = new Set(
+        foundIdioms.map(f => [...f].sort().join(''))
+      )
+      const neededByUnfound = new Set<string>()
+      for (let i = 0; i < multiQ.idioms.length; i++) {
+        const idiomSorted = [...multiQ.idioms[i]].sort().join('')
+        if (foundSortedSet.has(idiomSorted)) continue // already found
+        for (const ch of multiQ.idioms[i]) {
+          neededByUnfound.add(ch)
+        }
+      }
+      const foundChars = foundIdioms.flat()
+      return new Set(foundChars.filter(ch => !neededByUnfound.has(ch)))
+    }
+    return new Set(foundIdioms.flat())
+  }, [foundIdioms, question])
+
   // Generate star layout — only when question identity truly changes
   useEffect(() => {
     if (size.width === 0 || size.height === 0) return
 
     const questionId = 'id' in question ? (question as any).id : ''
-    const identityKey = `${questionId}-${currentRound}-${isSharedCharMode}-${completedRoundChars.join(',')}`
+    const identityKey = `${questionId}-${currentRound}-${isSharedCharMode}-${completedRoundChars.join(',')}-${foundIdioms.length}`
     if (identityKey === layoutKeyRef.current && stars.length > 0) return
     layoutKeyRef.current = identityKey
 
@@ -82,6 +106,10 @@ export default function StarContainer({
     } else if ('type' in question && question.type === 'shared-char') {
       answerChars = [...(question as SharedCharQuestion).allChars]
       distractorChars = [...(question as SharedCharQuestion).distractors]
+    } else if ('type' in question && question.type === 'multi') {
+      const mq = question as MultiIdiomQuestion
+      answerChars = [...mq.allChars]
+      distractorChars = [...mq.distractors]
     } else if ('idiom' in question) {
       answerChars = question.idiom.split('')
       distractorChars = question.distractors
@@ -92,7 +120,6 @@ export default function StarContainer({
 
     const uniqueDistractors = [...new Set(distractorChars)]
 
-    // Shared-char round 2 filtering: only show shared chars + chars not yet used in round 1
     if (isSharedCharMode && currentRound === 1 && completedRoundChars.length > 0) {
       answerChars = answerChars.filter(c =>
         sharedChars.includes(c) || !completedRoundChars.includes(c)
@@ -101,7 +128,6 @@ export default function StarContainer({
 
     const filteredDistractors = uniqueDistractors.filter((d) => !answerChars.includes(d))
 
-    // Seeded random for deterministic star positions per question
     const seed = hashString(`${questionId}-${currentRound}-${isSharedCharMode}`)
     const rand = createSeededRandom(seed)
 
@@ -118,13 +144,13 @@ export default function StarContainer({
     const usableW = size.width - containerPadding * 2
     const usableH = size.height - containerPadding * 2
 
-    setStars(shuffle(generated, rand).map((s) => ({
-      id: s.id,
+    setStars(shuffle(generated, rand).map((s, idx) => ({
+      id: `${s.id}-${idx}`,
       character: s.character,
       px: containerPadding + (s.x / 100) * usableW,
       py: containerPadding + (s.y / 100) * usableH,
     })))
-  }, [question, size.width, size.height, currentRound, completedRoundChars, sharedChars, isSharedCharMode])
+  }, [question, size.width, size.height, currentRound, completedRoundChars, sharedChars, isSharedCharMode, foundIdioms.length])
 
   // Build connection data
   const connections = useMemo(() => {
@@ -146,6 +172,7 @@ export default function StarContainer({
   }, [selectedChars, stars, currentRound])
 
   const isLocked = phase !== 'PLAYING' && phase !== 'ROUND2_PLAYING'
+  const isMulti = 'type' in question && question.type === 'multi'
 
   return (
     <div
@@ -164,18 +191,20 @@ export default function StarContainer({
 
       {stars.map((star) => {
         const selIdx = selectedStarIds.indexOf(star.id)
+        const isUsed = usedCharSet.has(star.character) && selIdx < 0
 
         return (
           <StarNode
             key={star.id}
             character={star.character}
-            state={selIdx >= 0 ? 'completed' : 'idle'}
+            state={isUsed ? 'used' : selIdx >= 0 ? 'completed' : 'idle'}
             order={selIdx >= 0 ? selIdx + 1 : undefined}
             x={star.px}
             y={star.py}
-            disabled={isLocked || selIdx >= 0}
+            // In multi mode, already-selected stars stay clickable (repeated chars like 一心一意)
+            disabled={isLocked || (selIdx >= 0 && !isMulti) || isUsed}
             onSelect={(char) => {
-              if (isLocked) return
+              if (isLocked || isUsed) return
               onSelectStar(char, star.id)
             }}
             glowMode={starGlowMode}

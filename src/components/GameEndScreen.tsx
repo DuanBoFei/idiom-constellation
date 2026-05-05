@@ -1,7 +1,6 @@
 import { useGame } from '../hooks/useGameReducer'
 import { LEVELS } from '../constants/levels'
 import { calculateStarRating } from '../utils/progress'
-import { calculateScore } from '../utils/scoring'
 import { saveScore, getLeaderboard, saveEndlessScore, getEndlessLeaderboard } from '../utils/leaderboard'
 import { audioEngine } from '../audio/AudioEngine'
 import type { LeaderboardEntry } from '../types'
@@ -34,7 +33,7 @@ export default function GameEndScreen({ onPlayAgain, onBackToLevels, isEndless =
     }
   }, [state.isEndlessMode])
 
-  const score = calculateScore(state.correctCount, state.timeRemaining, state.questions.length)
+  const score = state.score
   const avgTime =
     state.timesPerQuestion.length > 0
       ? Math.round(state.timesPerQuestion.reduce((a, b) => a + b, 0) / state.timesPerQuestion.length)
@@ -211,57 +210,49 @@ export default function GameEndScreen({ onPlayAgain, onBackToLevels, isEndless =
 
           {/* Buttons */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 14, width: '100%', maxWidth: 300 }}>
-            {!saved ? (
-              <div
-                onClick={handleSave}
-                style={{
-                  padding: '16px 0', textAlign: 'center',
-                  background: 'linear-gradient(135deg, #D4A04C 0%, #B8842A 100%)',
-                  borderRadius: 2,
-                  fontSize: 18, letterSpacing: 6, color: '#1A0E04',
-                  cursor: 'pointer',
-                  boxShadow: '0 6px 24px rgba(212,160,76,0.4)',
-                }}
-              >
-                保存成绩
-              </div>
-            ) : (
-              <div style={{
+            <div
+              onClick={onPlayAgain}
+              style={{
                 padding: '16px 0', textAlign: 'center',
+                background: 'linear-gradient(135deg, #D4A04C 0%, #B8842A 100%)',
                 borderRadius: 2,
-                fontSize: 18, letterSpacing: 6, color: '#8A8070',
-                border: '1px solid rgba(212,160,76,0.2)',
-              }}>
-                已保存
-              </div>
-            )}
+                fontSize: 18, letterSpacing: 6, color: '#1A0E04',
+                cursor: 'pointer',
+                boxShadow: '0 6px 24px rgba(212,160,76,0.4)',
+              }}
+            >
+              再来一局
+            </div>
             <div style={{ display: 'flex', gap: 12 }}>
-              <div
-                onClick={onPlayAgain}
-                style={{
+              {!saved ? (
+                <div
+                  onClick={handleSave}
+                  style={{
+                    flex: 1, padding: '12px 0', textAlign: 'center',
+                    border: '1px solid rgba(212,160,76,0.3)',
+                    borderRadius: 2, fontSize: 14, color: '#D4A04C', letterSpacing: 3, cursor: 'pointer',
+                  }}
+                >
+                  保存成绩
+                </div>
+              ) : (
+                <div style={{
                   flex: 1, padding: '12px 0', textAlign: 'center',
-                  border: '1px solid rgba(212,160,76,0.3)',
-                  borderRadius: 2, fontSize: 14, color: '#D4A04C', letterSpacing: 3, cursor: 'pointer',
-                }}
-              >
-                再来一局
-              </div>
+                  borderRadius: 2, fontSize: 14, color: '#8A8070', letterSpacing: 3,
+                  border: '1px solid rgba(212,160,76,0.2)',
+                }}>
+                  已保存
+                </div>
+              )}
               <div
                 onClick={onBackToLevels}
                 style={{
                   flex: 1, padding: '12px 0', textAlign: 'center',
                   border: '1px solid rgba(212,160,76,0.3)',
-                  borderRadius: 2, fontSize: 14, color: '#D4A04C', letterSpacing: 3, cursor: 'pointer',
+                  borderRadius: 2, fontSize: 14, color: '#8A8070', letterSpacing: 3, cursor: 'pointer',
                 }}
               >
-                返回关卡选择
-              </div>
-              <div style={{
-                flex: 1, padding: '12px 0', textAlign: 'center',
-                border: '1px solid rgba(212,160,76,0.3)',
-                borderRadius: 2, fontSize: 14, color: '#8A8070', letterSpacing: 3, cursor: 'pointer',
-              }}>
-                分 享
+                返回首页
               </div>
             </div>
           </div>

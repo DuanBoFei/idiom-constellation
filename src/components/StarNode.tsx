@@ -2,7 +2,7 @@ import { useCallback } from 'react'
 
 interface StarNodeProps {
   character: string
-  state: 'idle' | 'active' | 'completed'
+  state: 'idle' | 'active' | 'completed' | 'used'
   order?: number
   x: number
   y: number
@@ -22,8 +22,9 @@ export default function StarNode({ character, state, order, x, y, disabled, onSe
 
   const isActive = state === 'active'
   const isCompleted = state === 'completed'
-  const sz = isActive ? 72 : isCompleted ? 66 : 58
-  const col = isCompleted ? C.gold : isActive ? C.goldLight : 'rgba(210,200,170,0.5)'
+  const isUsed = state === 'used'
+  const sz = isActive ? 72 : isCompleted ? 66 : isUsed ? 50 : 58
+  const col = isCompleted ? C.gold : isActive ? C.goldLight : isUsed ? 'rgba(80,70,50,0.35)' : 'rgba(210,200,170,0.5)'
 
   return (
     <div style={{
@@ -36,26 +37,30 @@ export default function StarNode({ character, state, order, x, y, disabled, onSe
         style={{
           width: sz, height: sz,
           borderRadius: '50%',
-          border: `${isActive || isCompleted ? 2 : 1.5}px solid ${col}`,
+          border: `${isActive || isCompleted ? 2 : isUsed ? 1 : 1.5}px solid ${col}`,
           background: isCompleted
             ? 'radial-gradient(circle, rgba(212,160,76,0.35) 0%, rgba(212,160,76,0.08) 60%, transparent 100%)'
             : isActive
               ? 'radial-gradient(circle, rgba(232,201,122,0.28) 0%, rgba(232,201,122,0.06) 60%, transparent 100%)'
-              : 'radial-gradient(circle, rgba(210,200,160,0.12) 0%, transparent 70%)',
-          boxShadow: isCompleted
-            ? glowMode
-              ? '0 0 35px rgba(212,160,76,0.8), 0 0 70px rgba(232,201,122,0.3)'
-              : '0 0 20px rgba(212,160,76,0.55), 0 0 50px rgba(212,160,76,0.18)'
-            : isActive
+              : isUsed
+                ? 'radial-gradient(circle, rgba(60,50,30,0.1) 0%, transparent 70%)'
+                : 'radial-gradient(circle, rgba(210,200,160,0.12) 0%, transparent 70%)',
+          boxShadow: isUsed
+            ? 'none'
+            : isCompleted
               ? glowMode
-                ? '0 0 40px rgba(232,201,122,0.9), 0 0 80px rgba(232,201,122,0.4)'
-                : '0 0 28px rgba(232,201,122,0.65), 0 0 60px rgba(232,201,122,0.22)'
-              : '0 0 8px rgba(210,200,160,0.12)',
+                ? '0 0 35px rgba(212,160,76,0.8), 0 0 70px rgba(232,201,122,0.3)'
+                : '0 0 20px rgba(212,160,76,0.55), 0 0 50px rgba(212,160,76,0.18)'
+              : isActive
+                ? glowMode
+                  ? '0 0 40px rgba(232,201,122,0.9), 0 0 80px rgba(232,201,122,0.4)'
+                  : '0 0 28px rgba(232,201,122,0.65), 0 0 60px rgba(232,201,122,0.22)'
+                : '0 0 8px rgba(210,200,160,0.12)',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
-          fontSize: isActive ? 26 : isCompleted ? 24 : 20,
+          fontSize: isActive ? 26 : isCompleted ? 24 : isUsed ? 16 : 20,
           color: col,
           fontFamily: "'LXGW WenKai','KaiTi',serif",
-          cursor: disabled ? 'default' : 'pointer',
+          cursor: disabled || isUsed ? 'default' : 'pointer',
           transition: 'all 0.3s',
           position: 'relative',
           animation: isActive

@@ -1,4 +1,4 @@
-export type GameplayMode = 'normal' | 'reverse' | 'shared-char'
+export type GameplayMode = 'normal' | 'reverse' | 'shared-char' | 'multi'
 
 export interface LevelConfig {
   id: number
@@ -8,6 +8,7 @@ export interface LevelConfig {
   totalStarCount: number
   distractorCount: number
   timePerQuestion: number
+  scoreMultiplier: number
 }
 
 export type GamePhase = 'INIT' | 'LEVEL_SELECT' | 'PLAYING' | 'MEANING_SELECT' | 'MEANING_CHECK' | 'CHECKING' | 'ROUND2_PLAYING' | 'ROUND2_CHECKING' | 'RESULT' | 'GAMEOVER'
@@ -50,6 +51,17 @@ export interface SharedCharQuestion {
   difficulty: 1 | 2 | 3
 }
 
+export interface MultiIdiomQuestion {
+  id: string
+  type: 'multi'
+  idioms: [string, string, string]     // 3 idioms to find
+  allChars: string[]                   // all unique chars from all idioms
+  distractors: string[]
+  hints: [string, string, string]      // one hint per idiom
+  stories?: [string, string, string]
+  difficulty: 3
+}
+
 export interface DoubleIdiomRound {
   idiom: string
   hint: string
@@ -63,7 +75,7 @@ export interface DoubleIdiomQuestion {
   rounds: [DoubleIdiomRound, DoubleIdiomRound]
 }
 
-export type Question = IdiomQuestion | DoubleIdiomQuestion | ReverseQuestion | SharedCharQuestion
+export type Question = IdiomQuestion | DoubleIdiomQuestion | ReverseQuestion | SharedCharQuestion | MultiIdiomQuestion
 
 export interface StarPosition {
   id: string        // the character
@@ -92,6 +104,7 @@ export interface GameState {
   consecutiveErrors: number
   currentRound: number
   completedRounds: string[][]
+  foundIdioms: string[][]             // idioms found so far (for multi mode)
   isEndlessMode: boolean
 }
 
@@ -112,6 +125,8 @@ export type GameAction =
   | { type: 'VALIDATE_MEANING'; correct: boolean }
   | { type: 'COMPLETE_SHARED_ROUND' }
   | { type: 'SHOW_MEANING_SELECT' }
+  | { type: 'FOUND_IDIOM'; chars: string[] }
+  | { type: 'CLEAR_SELECTION' }
 
 export interface LeaderboardEntry {
   name: string
