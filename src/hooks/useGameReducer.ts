@@ -183,12 +183,19 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
     case 'SHOW_MEANING_SELECT':
       return { ...state, phase: 'MEANING_SELECT', selectedStars: [], selectedStarIds: [] }
     case 'VALIDATE_MEANING':
-      if (!action.correct) return state
+      if (action.correct) {
+        return {
+          ...state,
+          phase: 'RESULT',
+          lastResult: 'correct',
+          correctCount: state.correctCount + 1,
+          timeRemaining: state.timeRemaining,
+        }
+      }
       return {
         ...state,
         phase: 'RESULT',
-        lastResult: 'correct',
-        correctCount: state.correctCount + 1,
+        lastResult: 'wrong',
         timeRemaining: state.timeRemaining,
       }
     case 'COMPLETE_SHARED_ROUND': {

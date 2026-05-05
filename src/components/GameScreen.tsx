@@ -24,6 +24,8 @@ export default function GameScreen({ levelId, isEndless = false }: GameScreenPro
   const checkingHandled = useRef(false)
   const [showTimeout, setShowTimeout] = useState(false)
   const [penaltyFlash, setPenaltyFlash] = useState(false)
+  const [showWrongMeaning, setShowWrongMeaning] = useState(false)
+  const advanceFromWrongRef = useRef(false)
 
   const isSuccess = state.lastResult === 'correct'
   const timeout = state.lastResult === 'timeout'
@@ -122,6 +124,19 @@ export default function GameScreen({ levelId, isEndless = false }: GameScreenPro
     }
   }, [timeout, dispatch])
 
+  // Handle reverse meaning wrong — show correct answer then advance
+  useEffect(() => {
+    if (state.phase === 'RESULT' && state.lastResult === 'wrong' && isReverse && advanceFromWrongRef.current) {
+      advanceFromWrongRef.current = false
+      setShowWrongMeaning(true)
+      const t = setTimeout(() => {
+        setShowWrongMeaning(false)
+        dispatch({ type: 'NEXT_QUESTION' })
+      }, 2000)
+      return () => clearTimeout(t)
+    }
+  }, [state.phase, state.lastResult, isReverse, dispatch])
+
   // Reset handling guard
   useEffect(() => {
     if (state.phase === 'PLAYING' || state.phase === 'ROUND2_PLAYING') {
@@ -199,12 +214,9 @@ export default function GameScreen({ levelId, isEndless = false }: GameScreenPro
             dispatch({ type: 'VALIDATE_MEANING', correct: true })
             if (!isEndless) setShowIdiomCard(true)
           }}
-          onWrong={(wrong) => {
-            const el = document.querySelector(`[data-fragment="${CSS.escape(wrong)}"]`) as HTMLElement
-            if (el) {
-              el.style.opacity = '0.3'
-              el.style.pointerEvents = 'none'
-            }
+          onWrong={() => {
+            advanceFromWrongRef.current = true
+            dispatch({ type: 'VALIDATE_MEANING', correct: false })
           }}
         />
       )}
@@ -298,6 +310,34 @@ export default function GameScreen({ levelId, isEndless = false }: GameScreenPro
                 : isSharedChar
                   ? (currentQ as SharedCharQuestion).idioms[state.currentRound] ?? (currentQ as SharedCharQuestion).idioms[0]
                   : (currentQ as IdiomQuestion).idiom}
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* Wrong meaning overlay (reverse mode) */}
+      {showWrongMeaning && (
+        <div style={{
+          position: 'fixed', inset: 0, zIndex: 40,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          background: 'rgba(0,0,0,0.5)',
+          animation: 'fadeIn 0.3s ease',
+        }}>
+          <div style={{
+            padding: 32, textAlign: 'center',
+            background: 'rgba(10,22,40,0.85)',
+            border: '1px solid rgba(200,66,58,0.3)',
+            borderRadius: 2,
+            backdropFilter: 'blur(8px)',
+          }}>
+            <p style={{ fontSize: 14, color: '#C8423A', marginBottom: 12, letterSpacing: 2, fontFamily: "'Noto Serif SC',serif" }}>
+              释义错误
+            </p>
+            <p style={{
+              fontSize: 16, color: '#E8E4D9', letterSpacing: 1, lineHeight: 1.6,
+              fontFamily: "'Noto Serif SC',serif",
+            }}>
+              正确答案：{(currentQ as import('../types').ReverseQuestion).meaning}
             </p>
           </div>
         </div>
