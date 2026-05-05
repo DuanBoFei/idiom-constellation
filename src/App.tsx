@@ -104,7 +104,7 @@ function App() {
         {screen === 'menu' && <StarField />}
 
         {screen === 'menu' && (
-          <StartScreen onSelectLevel={handleSelectLevel} onEndless={handleEndless} />
+          <StartScreen onSelectLevel={handleSelectLevel} />
         )}
 
         {screen === 'game' && (

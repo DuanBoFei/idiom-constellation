@@ -5,7 +5,6 @@ import type { PlayerProgress } from '../types'
 
 interface StartScreenProps {
   onSelectLevel: (levelId: number) => void
-  onEndless: () => void
 }
 
 const C = {
@@ -31,7 +30,7 @@ const constellations = [
   { lines: [[50,15,80,30],[80,30,80,65],[80,65,50,80],[50,80,20,65],[20,65,20,30],[20,30,50,15]], dots:[{x:50,y:15},{x:80,y:30},{x:80,y:65},{x:50,y:80},{x:20,y:65},{x:20,y:30}] },
 ]
 
-export default function StartScreen({ onSelectLevel, onEndless }: StartScreenProps) {
+export default function StartScreen({ onSelectLevel }: StartScreenProps) {
   const [progress, setProgress] = useState<PlayerProgress>({ unlockedLevels: [1], levelStars: {}, levelScores: {}, endlessHighScore: 0, totalScore: 0 })
 
   useEffect(() => {
