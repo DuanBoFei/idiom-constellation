@@ -1,6 +1,7 @@
 import { createContext, useContext } from 'react'
 import { shuffle } from '../utils/shuffle'
 import { questions as questionBank } from '../data/questions'
+import { LEVELS, STAR_GLOW_THRESHOLD, ERROR_PENALTY_THRESHOLD, ERROR_PENALTY_SECONDS } from '../constants/levels'
 import type { GameState, GameAction, Question } from '../types'
 
 const TIME_PER_SINGLE = 20
@@ -21,12 +22,20 @@ export function createInitialState(): GameState {
     questions: [],
     currentQuestionIndex: 0,
     selectedStars: [],
+    selectedStarIds: [],
     score: 0,
     timeRemaining: 0,
     correctCount: 0,
     totalTimeUsed: 0,
     timesPerQuestion: [],
     lastResult: null,
+    currentLevelId: 0,
+    streak: 0,
+    starGlowMode: false,
+    consecutiveErrors: 0,
+    isEndlessMode: false,
+    currentRound: 0,
+    completedRounds: [],
   }
 }
 
@@ -47,14 +56,20 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       }
     }
     case 'SELECT_STAR': {
-      if (state.phase !== 'PLAYING') return state
-      if (state.selectedStars.includes(action.character)) return state
+      if (state.phase !== 'PLAYING' && state.phase !== 'ROUND2_PLAYING') return state
+      if (state.selectedStarIds.includes(action.starId)) return state
       if (state.selectedStars.length >= 4) return state
       const newSelected = [...state.selectedStars, action.character]
+      const newSelectedIds = [...state.selectedStarIds, action.starId]
       if (newSelected.length === 4) {
-        return { ...state, phase: 'CHECKING', selectedStars: newSelected }
+        return {
+          ...state,
+          phase: state.phase === 'ROUND2_PLAYING' ? 'ROUND2_CHECKING' : 'CHECKING',
+          selectedStars: newSelected,
+          selectedStarIds: newSelectedIds,
+        }
       }
-      return { ...state, selectedStars: newSelected }
+      return { ...state, selectedStars: newSelected, selectedStarIds: newSelectedIds }
     }
     case 'VALIDATE_SUCCESS': {
       const question = state.questions[state.currentQuestionIndex]
@@ -77,6 +92,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         phase: 'RESULT',
         lastResult: 'wrong',
         selectedStars: [],
+        selectedStarIds: [],
         totalTimeUsed: state.totalTimeUsed + timeSpent,
         timesPerQuestion: [...state.timesPerQuestion, timeSpent],
       }
@@ -88,6 +104,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         phase: 'RESULT',
         lastResult: 'timeout',
         selectedStars: [],
+        selectedStarIds: [],
         timeRemaining: 0,
         totalTimeUsed: state.totalTimeUsed + getQuestionTime(question),
         timesPerQuestion: [...state.timesPerQuestion, getQuestionTime(question)],
@@ -104,15 +121,22 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         phase: 'PLAYING',
         currentQuestionIndex: nextIdx,
         selectedStars: [],
+        selectedStarIds: [],
         timeRemaining: state.timeRemaining + getQuestionTime(nextQ),
         lastResult: null,
+        currentRound: 0,
+        completedRounds: [],
       }
     }
     case 'TICK': {
-      if (state.phase !== 'PLAYING') return state
+      if (state.phase !== 'PLAYING' && state.phase !== 'ROUND2_PLAYING') return state
       const newTime = state.timeRemaining - 1
       if (newTime <= 0) {
-        return { ...state, timeRemaining: 0, phase: 'CHECKING' }
+        return {
+          ...state,
+          timeRemaining: 0,
+          phase: state.phase === 'ROUND2_PLAYING' ? 'ROUND2_CHECKING' : 'CHECKING',
+        }
       }
       return { ...state, timeRemaining: newTime }
     }
@@ -120,6 +144,63 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       return { ...state, phase: 'GAMEOVER' }
     case 'RESET':
       return createInitialState()
+    case 'SELECT_LEVEL': {
+      const levelConfig = LEVELS.find(l => l.id === action.levelId)
+      return {
+        ...createInitialState(),
+        phase: 'PLAYING',
+        questions: action.questions,
+        currentQuestionIndex: 0,
+        timeRemaining: levelConfig ? levelConfig.timePerQuestion : 20,
+        currentLevelId: action.levelId,
+        isEndlessMode: action.isEndless ?? false,
+      }
+    }
+    case 'RECORD_CORRECT': {
+      const newStreak = state.streak >= 0 ? state.streak + 1 : 1
+      return {
+        ...state,
+        streak: newStreak,
+        starGlowMode: newStreak >= STAR_GLOW_THRESHOLD,
+        consecutiveErrors: 0,
+      }
+    }
+    case 'RECORD_WRONG': {
+      const newConsecutive = state.consecutiveErrors + 1
+      const penalty = newConsecutive >= ERROR_PENALTY_THRESHOLD
+        ? Math.min(state.timeRemaining, ERROR_PENALTY_SECONDS)
+        : 0
+      return {
+        ...state,
+        streak: state.streak > 0 ? 0 : state.streak - 1,
+        starGlowMode: false,
+        consecutiveErrors: newConsecutive >= ERROR_PENALTY_THRESHOLD ? 0 : newConsecutive,
+        timeRemaining: Math.max(0, state.timeRemaining - penalty),
+      }
+    }
+    case 'LEVEL_COMPLETE':
+      return { ...state, phase: 'GAMEOVER' }
+    case 'SHOW_MEANING_SELECT':
+      return { ...state, phase: 'MEANING_SELECT', selectedStars: [], selectedStarIds: [] }
+    case 'VALIDATE_MEANING':
+      if (!action.correct) return state
+      return {
+        ...state,
+        phase: 'RESULT',
+        lastResult: 'correct',
+        correctCount: state.correctCount + 1,
+        timeRemaining: state.timeRemaining,
+      }
+    case 'COMPLETE_SHARED_ROUND': {
+      return {
+        ...state,
+        currentRound: 1,
+        completedRounds: [...state.completedRounds, [...state.selectedStars]],
+        selectedStars: [],
+        selectedStarIds: [],
+        phase: 'ROUND2_PLAYING',
+      }
+    }
     default:
       return state
   }

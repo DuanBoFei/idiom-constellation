@@ -36,3 +36,23 @@ export function saveScore(entry: Omit<LeaderboardEntry, 'date' | 'timestamp'>): 
     // localStorage unavailable
   }
 }
+
+const ENDLESS_KEY = 'idiom-constellation-endless'
+
+export function getEndlessLeaderboard(): LeaderboardEntry[] {
+  try {
+    const raw = localStorage.getItem(ENDLESS_KEY)
+    if (!raw) return []
+    const all: LeaderboardEntry[] = JSON.parse(raw)
+    return all.sort((a, b) => b.score - a.score).slice(0, 10)
+  } catch { return [] }
+}
+
+export function saveEndlessScore(entry: Omit<LeaderboardEntry, 'date' | 'timestamp'>): void {
+  const newEntry: LeaderboardEntry = { ...entry, date: getToday(), timestamp: Date.now() }
+  try {
+    const all: LeaderboardEntry[] = JSON.parse(localStorage.getItem(ENDLESS_KEY) || '[]')
+    all.push(newEntry)
+    localStorage.setItem(ENDLESS_KEY, JSON.stringify(all))
+  } catch {}
+}

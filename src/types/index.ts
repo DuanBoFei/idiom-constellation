@@ -1,4 +1,16 @@
-export type GamePhase = 'INIT' | 'PLAYING' | 'CHECKING' | 'RESULT' | 'GAMEOVER'
+export type GameplayMode = 'normal' | 'reverse' | 'shared-char'
+
+export interface LevelConfig {
+  id: number
+  name: string
+  mode: GameplayMode
+  questionsPerRound: number
+  totalStarCount: number
+  distractorCount: number
+  timePerQuestion: number
+}
+
+export type GamePhase = 'INIT' | 'LEVEL_SELECT' | 'PLAYING' | 'MEANING_SELECT' | 'MEANING_CHECK' | 'CHECKING' | 'ROUND2_PLAYING' | 'ROUND2_CHECKING' | 'RESULT' | 'GAMEOVER'
 
 export interface IdiomQuestion {
   id: string
@@ -10,6 +22,32 @@ export interface IdiomQuestion {
   difficulty: 1 | 2 | 3
   distractors: string[]     // single-char distractors
   melody: number[]          // 4 frequencies in Hz
+}
+
+export interface ReverseQuestion {
+  id: string
+  type: 'reverse'
+  idiom: string
+  pinyin: string
+  meaning: string
+  meaningFragments: string[]     // 3-4 full-sentence options including correct
+  hint: string
+  story?: string
+  difficulty: 1 | 2 | 3
+  chars: string[]                // 4 idiom characters (revealed after meaning selection)
+  distractors: string[]          // distractor characters
+}
+
+export interface SharedCharQuestion {
+  id: string
+  type: 'shared-char'
+  idioms: [string, string]
+  allChars: string[]             // deduplicated union of both idioms' chars
+  sharedChars: string[]          // characters shared between both idioms
+  distractors: string[]
+  hints: [string, string]
+  stories?: [string, string]
+  difficulty: 1 | 2 | 3
 }
 
 export interface DoubleIdiomRound {
@@ -25,7 +63,7 @@ export interface DoubleIdiomQuestion {
   rounds: [DoubleIdiomRound, DoubleIdiomRound]
 }
 
-export type Question = IdiomQuestion | DoubleIdiomQuestion
+export type Question = IdiomQuestion | DoubleIdiomQuestion | ReverseQuestion | SharedCharQuestion
 
 export interface StarPosition {
   id: string        // the character
@@ -41,17 +79,25 @@ export interface GameState {
   questions: Question[]
   currentQuestionIndex: number
   selectedStars: string[]
+  selectedStarIds: string[]
   score: number
   timeRemaining: number
   correctCount: number
   totalTimeUsed: number
   timesPerQuestion: number[]
   lastResult: 'correct' | 'wrong' | 'timeout' | null
+  currentLevelId: number
+  streak: number
+  starGlowMode: boolean
+  consecutiveErrors: number
+  currentRound: number
+  completedRounds: string[][]
+  isEndlessMode: boolean
 }
 
 export type GameAction =
   | { type: 'START_GAME'; questions: Question[] }
-  | { type: 'SELECT_STAR'; character: string }
+  | { type: 'SELECT_STAR'; character: string; starId: string }
   | { type: 'VALIDATE_SUCCESS' }
   | { type: 'VALIDATE_FAIL' }
   | { type: 'TIMEOUT' }
@@ -59,6 +105,13 @@ export type GameAction =
   | { type: 'TICK' }
   | { type: 'END_GAME' }
   | { type: 'RESET' }
+  | { type: 'SELECT_LEVEL'; levelId: number; questions: Question[]; isEndless?: boolean }
+  | { type: 'RECORD_CORRECT' }
+  | { type: 'RECORD_WRONG' }
+  | { type: 'LEVEL_COMPLETE' }
+  | { type: 'VALIDATE_MEANING'; correct: boolean }
+  | { type: 'COMPLETE_SHARED_ROUND' }
+  | { type: 'SHOW_MEANING_SELECT' }
 
 export interface LeaderboardEntry {
   name: string
@@ -66,4 +119,12 @@ export interface LeaderboardEntry {
   correctCount: number
   date: string
   timestamp: number
+}
+
+export interface PlayerProgress {
+  unlockedLevels: number[]
+  levelStars: Record<number, number>
+  levelScores: Record<number, number>
+  endlessHighScore: number
+  totalScore: number
 }

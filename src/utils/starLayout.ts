@@ -1,5 +1,6 @@
 import { shuffle } from './shuffle'
 import type { StarPosition } from '../types'
+import type { RandFn } from './seededRandom'
 
 interface LayoutConfig {
   starCount: number
@@ -13,14 +14,15 @@ interface LayoutConfig {
 function generatePosition(
   existing: StarPosition[],
   config: LayoutConfig,
+  rand: RandFn,
 ): { x: number; y: number } {
   const marginX = config.fieldWidth * (config.paddingX / 100)
   const marginY = config.fieldHeight * (config.paddingY / 100)
   const maxAttempts = 100
 
   for (let attempt = 0; attempt < maxAttempts; attempt++) {
-    const x = marginX + Math.random() * (config.fieldWidth - 2 * marginX)
-    const y = marginY + Math.random() * (config.fieldHeight - 2 * marginY)
+    const x = marginX + rand() * (config.fieldWidth - 2 * marginX)
+    const y = marginY + rand() * (config.fieldHeight - 2 * marginY)
 
     const overlaps = existing.some(
       (s) => Math.hypot(s.x * config.fieldWidth / 100 - x, s.y * config.fieldHeight / 100 - y) < config.minSpacing,
@@ -46,6 +48,7 @@ export function generateStarLayout(
   fieldWidth: number,
   fieldHeight: number,
   roundIndex?: number,
+  rand: RandFn = Math.random,
 ): StarPosition[] {
   const allChars = [...answerChars, ...distractors]
   const config: LayoutConfig = {
@@ -72,7 +75,7 @@ export function generateStarLayout(
 
   for (const char of distractors) {
     positions.push({
-      id: `distractor-${char}-${roundIndex ?? 0}-${Math.random().toString(36).slice(2, 6)}`,
+      id: `distractor-${char}-${roundIndex ?? 0}-${rand().toString(36).slice(2, 6)}`,
       x: 0,
       y: 0,
       character: char,
@@ -82,10 +85,10 @@ export function generateStarLayout(
   }
 
   for (const pos of positions) {
-    const { x, y } = generatePosition(positions.filter((p) => p !== pos), config)
+    const { x, y } = generatePosition(positions.filter((p) => p !== pos), config, rand)
     pos.x = x
     pos.y = y
   }
 
-  return shuffle(positions)
+  return shuffle(positions, rand)
 }

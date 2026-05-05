@@ -3,3 +3,6 @@ dist/
 .worktrees/
 worktrees/
 *.local
+
+.vercel
+.gstack/
